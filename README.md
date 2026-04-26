@@ -1,39 +1,137 @@
 # 🧠 Metagent
-### Hallucination-free AI for your enterprise data catalog.
+### A secure Metadata Agent for enterprise data catalogs.
 
-Every company wants to "chat with their database," but there is a massive roadblock: **LLMs lie.** If you ask a standard AI to write a query to find a customer's email, it may confidently hallucinate column names like `customer_email`. When that code runs, it breaks downstream pipelines, ruins dashboards, and destroys trust in data tools.
+Metagent is not just a chatbot that reads a database.
 
-Enterprise data also has two massive unsolved problems: **security** and **technical debt**. AI should not leak sensitive fields like emails, passwords, or SSNs, and data catalogs should not sit empty with missing column descriptions.
+It is a **Metadata Agent**: an AI assistant that reads the trusted blueprint of your data architecture from OpenMetadata, without touching raw production rows.
 
-**Metagent** solves this. It is a context-aware AI agent that refuses to guess, blocks sensitive data requests, and helps heal incomplete metadata by drafting missing documentation for your catalog.
+## 🎯 The Problem
 
-## ✨ Core Enterprise Features
+Every company wants to "chat with their database," but enterprise AI runs into three hard blockers:
 
-1. **Hallucination-Free Answers:** Metagent connects directly to the OpenMetadata API to verify the exact, real-time database schema before answering. If the schema does not prove it, the agent will not claim it.
-2. **Governance Firewall:** Metagent scans user intent for sensitive data requests. If a user asks for PII such as emails, SSNs, passwords, phone numbers, credit cards, or addresses, it returns a hard governance block instead of exposing risky information.
-3. **Self-Healing Catalog:** If Metagent detects columns with missing descriptions, it acts like an automated data steward. It analyzes the column name and data type, then proposes professional data dictionary definitions.
-4. **Model-Agnostic Routing:** Metagent can route requests to OpenAI, Groq, or Google Gemini using a single `ACTIVE_LLM` environment variable.
-5. **ChatGPT-Style Web UI:** A Next.js interface provides session-based chat, dark/light theme support, and a clean enterprise-friendly interaction flow.
+- **LLMs hallucinate schemas:** They invent columns like `customer_email` even when those columns do not exist.
+- **AI can leak sensitive context:** A careless assistant may expose or reason about PII such as emails, passwords, SSNs, phone numbers, or credit cards.
+- **Data catalogs decay:** Many enterprise tables have missing descriptions, weak documentation, and unclear ownership.
 
-## 🚀 How It Works
+## ✅ The Solution
 
-1. **The Ask:** A user asks a natural language question in the Metagent web UI.
-2. **The Verification:** The API route sends the question to the core agent, which fetches live table context from **OpenMetadata**.
-3. **The Governance Check:** Before calling an LLM, Metagent checks whether the user is asking for sensitive fields.
-4. **The Lock-In:** Metagent builds a strict prompt using only the verified OpenMetadata schema.
-5. **The Answer:** The selected LLM answers using the schema. If the answer is not supported by the catalog, Metagent says so.
-6. **The Documentation Boost:** When metadata descriptions are missing, Metagent includes suggested documentation that can be reviewed by a human data steward.
+Metagent lets teams explore data architecture with:
+
+- **Zero raw-data access**
+- **Verified schema context**
+- **PII-aware governance**
+- **Automatic metadata documentation suggestions**
+- **A clean ChatGPT-style web UI**
+
+## 🗺️ Blueprint, Not Raw Data
+
+Think of a company database as a secure warehouse full of sealed boxes.
+
+- A standard database chatbot tries to enter the warehouse and inspect the boxes.
+- **Metagent never enters the warehouse.**
+- Metagent goes to the manager's office, reads the master blueprint from **OpenMetadata**, and answers only from that trusted metadata.
+
+Metagent reads:
+
+- Table names
+- Column names
+- Data types
+- Column descriptions
+- Catalog metadata
+
+Metagent does **not** read:
+
+- Actual user emails
+- Actual passwords
+- Actual customer records
+- Actual row-level production data
+
+That distinction makes Metagent safer for enterprise environments.
+
+## ✨ Core Features
+
+### 1. Reads the Blueprint
+
+Metagent fetches the exact live schema from OpenMetadata before answering.
+
+If a user asks:
+
+```text
+Where are the user emails?
+```
+
+Metagent checks the catalog. If the schema proves the answer, it responds. If not, it refuses to invent a column.
+
+### 2. Governance Firewall
+
+Metagent is intentionally paranoid about sensitive fields.
+
+Before the LLM answers, Metagent scans the user request for risky intent around:
+
+- Emails
+- Passwords
+- SSNs
+- Phone numbers
+- Credit cards
+- Addresses
+
+If the prompt asks for sensitive data, Metagent stops the request before it reaches the model and returns a governance block.
+
+### 3. Self-Healing Catalog
+
+When Metagent sees missing column descriptions, it acts like an automated data steward.
+
+It can:
+
+- Detect blank or weak descriptions
+- Infer meaning from column names and data types
+- Draft clean data dictionary entries
+- Propose documentation for human review
+
+This helps turn an empty catalog into a useful enterprise knowledge layer.
+
+### 4. Model-Agnostic AI Router
+
+Metagent supports multiple LLM providers through one environment variable:
+
+- OpenAI
+- Groq / Llama 3
+- Google Gemini
+
+Switch providers with:
+
+```text
+ACTIVE_LLM="gemini"
+```
+
+### 5. Web App Experience
+
+The frontend provides:
+
+- ChatGPT-style conversations
+- Session history
+- Dark and light themes
+- Next.js API route integration
+- A clean demo flow for hackathon judging
+
+## ⚙️ How It Works
+
+1. **User asks a question** in the Metagent web UI.
+2. **API route receives the message** and sends it to the core agent.
+3. **OpenMetadata is queried** for the verified table schema.
+4. **Governance firewall runs first** to block sensitive requests.
+5. **Strict prompt is created** using only OpenMetadata context.
+6. **Selected LLM answers** through OpenAI, Groq, or Gemini.
+7. **Missing documentation is detected** and suggested descriptions are generated.
 
 ## 🛠️ Tech Stack
 
-Built to be fast, beautiful, and model-agnostic:
-
 - **Frontend:** Next.js, React, and Tailwind CSS
-- **UI:** ChatGPT-style session interface with dark/light theme support
-- **Backend:** TypeScript and Node.js API routes
+- **Backend:** TypeScript and Next.js API routes
 - **Source of Truth:** [OpenMetadata](https://open-metadata.org/) data catalog API
-- **AI Router:** Hot-swappable provider support for **OpenAI**, **Groq** / Llama 3, and **Google Gemini**
-- **Deployment Shape:** Serverless-ready Next.js application
+- **AI Providers:** OpenAI, Groq / Llama 3, Google Gemini
+- **Runtime:** Node.js
+- **Deployment:** Serverless-ready Next.js app
 
 ## 💻 Quickstart
 
@@ -142,9 +240,21 @@ src/
 
 ## 💡 Why OpenMetadata?
 
-Standard AI agents fail because they lack trusted business context. OpenMetadata acts as the source of truth for this project. By using its standardized API, Metagent can pull not just database schemas, but also human-written descriptions and metadata attached to real enterprise assets.
+OpenMetadata is the trusted blueprint for this project.
 
-That turns a generic LLM into a specialized, secure data engineering assistant that knows when to answer, when to block, and when to say: "I do not know from the available schema."
+Instead of giving the LLM direct access to raw data, Metagent gives it verified metadata:
+
+- Real table names
+- Real column names
+- Real data types
+- Real human-written descriptions
+- Real catalog context
+
+That turns a generic LLM into a secure data architecture assistant that knows when to answer, when to block, and when to say:
+
+```text
+I do not know from the available schema.
+```
 
 ## 🔒 Safety Principle
 
