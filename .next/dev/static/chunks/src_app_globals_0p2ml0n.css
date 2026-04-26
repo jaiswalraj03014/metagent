@@ -339,6 +339,11 @@ img, video {
   margin-bottom: .25rem;
 }
 
+.my-2 {
+  margin-top: .5rem;
+  margin-bottom: .5rem;
+}
+
 .mb-1 {
   margin-bottom: .25rem;
 }
@@ -1019,6 +1024,11 @@ img, video {
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
 
+.text-purple-400 {
+  --tw-text-opacity: 1;
+  color: rgb(192 132 252 / var(--tw-text-opacity, 1));
+}
+
 .opacity-0 {
   opacity: 0;
 }
@@ -1171,6 +1181,10 @@ body {
 
 .dark ::-webkit-scrollbar-thumb {
   background: #334155;
+}
+
+.last\:mb-0:last-child {
+  margin-bottom: 0;
 }
 
 .focus-within\:border-purple-500:focus-within {

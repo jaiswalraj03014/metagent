@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import logo from '../assets/logo.png'; 
+import ReactMarkdown from 'react-markdown';
 
 // Define our types
 type Message = { role: string; content: string };
@@ -356,9 +357,23 @@ export default function MetagentUI() {
                 <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
                   msg.role === 'user' 
                     ? 'brand-gradient-bg text-white shadow-lg shadow-purple-500/20 rounded-tr-sm' 
-                    : `${botBubble} rounded-tl-sm whitespace-pre-wrap`
+                    : `${botBubble} rounded-tl-sm`
                 }`}>
-                  {msg.content}
+                  {msg.role === 'user' ? (
+                    msg.content
+                  ) : (
+                    <ReactMarkdown 
+                      className="flex flex-col gap-2"
+                      components={{
+                        strong: ({node, ...props}) => <strong className="font-semibold text-purple-400" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 my-2" {...props} />,
+                        li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
                 </div>
               </div>
             ))}
