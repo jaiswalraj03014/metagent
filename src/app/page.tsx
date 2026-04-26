@@ -6,7 +6,7 @@ import logo from '../assets/logo.png';
 
 // Define our types
 type Message = { role: string; content: string };
-type ChatSession = { id: string; title: string; messages: Message[] };
+type ChatSession = { id: string; title: string; messages: Message[]; isPinned?: boolean };
 
 export default function MetagentUI() {
   // --- STATE ---
@@ -15,16 +15,18 @@ export default function MetagentUI() {
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState('');
   
-  // The Welcome Modal State
   const [showWelcome, setShowWelcome] = useState(false);
   
-  // Session-based chats with the new, authoritative greeting
+  // Chat Actions State
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  // Session-based chats
+  const defaultGreeting = "Hello. I am Metagent, your dedicated agent for exploring enterprise data. I am connected to your OpenMetadata context and ready to help you analyze your schemas safely. What would you like to know?";
+  
   const [chats, setChats] = useState<ChatSession[]>([
-    { 
-      id: '1', 
-      title: 'New Chat', 
-      messages: [{ role: 'system', content: "Hello. I am Metagent, your dedicated agent for exploring enterprise data. I am connected to your OpenMetadata context and ready to help you analyze your schemas safely. What would you like to know?" }] 
-    }
+    { id: '1', title: 'New Chat', messages: [{ role: 'system', content: defaultGreeting }] }
   ]);
   const [activeChatId, setActiveChatId] = useState<string>('1');
 
@@ -35,26 +37,19 @@ export default function MetagentUI() {
   
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('metagent_welcome_seen');
-    if (!hasSeenWelcome) {
-      setShowWelcome(true);
-    }
+    if (!hasSeenWelcome) setShowWelcome(true);
   }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [activeChat.messages]);
+  }, [activeChat?.messages]);
 
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
-  // --- ACTIONS ---
-  
-  const closeWelcome = () => {
-    localStorage.setItem('metagent_welcome_seen', 'true');
-    setShowWelcome(false);
-  };
+  // --- CHAT ACTIONS ---
 
   const createNewChat = () => {
     const newId = Date.now().toString();
@@ -66,6 +61,48 @@ export default function MetagentUI() {
     if (window.innerWidth < 768) setIsSidebarOpen(false); 
   };
 
+  const deleteChat = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const remainingChats = chats.filter(c => c.id !== id);
+    
+    if (remainingChats.length === 0) {
+      // If we deleted the last chat, create a new one automatically
+      const newId = Date.now().toString();
+      setChats([{ id: newId, title: 'New Chat', messages: [{ role: 'system', content: defaultGreeting }] }]);
+      setActiveChatId(newId);
+    } else {
+      setChats(remainingChats);
+      if (activeChatId === id) setActiveChatId(remainingChats[0].id);
+    }
+    setMenuOpenId(null);
+  };
+
+  const togglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setChats(prev => prev.map(c => c.id === id ? { ...c, isPinned: !c.isPinned } : c));
+    setMenuOpenId(null);
+  };
+
+  const startRename = (e: React.MouseEvent, id: string, currentTitle: string) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditTitle(currentTitle);
+    setMenuOpenId(null);
+  };
+
+  const saveRename = (id: string) => {
+    if (editTitle.trim()) {
+      setChats(prev => prev.map(c => c.id === id ? { ...c, title: editTitle.trim() } : c));
+    }
+    setEditingId(null);
+  };
+
+  const closeWelcome = () => {
+    localStorage.setItem('metagent_welcome_seen', 'true');
+    setShowWelcome(false);
+  };
+
+  // --- MESSAGE SENDING ---
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -76,7 +113,10 @@ export default function MetagentUI() {
 
     setChats(prev => prev.map(chat => {
       if (chat.id === activeChatId) {
-        const newTitle = chat.messages.length === 1 ? userMessage.slice(0, 25) + '...' : chat.title;
+        // Only auto-rename if the chat is still named "New Chat" and isn't pinned
+        const newTitle = (chat.title === 'New Chat' && chat.messages.length === 1) 
+          ? userMessage.slice(0, 25) + '...' 
+          : chat.title;
         return { ...chat, title: newTitle, messages: [...chat.messages, { role: 'user', content: userMessage }] };
       }
       return chat;
@@ -88,26 +128,23 @@ export default function MetagentUI() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage })
       });
-      
       const data = await res.json();
       
       setChats(prev => prev.map(chat => {
-        if (chat.id === activeChatId) {
-          return { ...chat, messages: [...chat.messages, { role: 'system', content: data.reply }] };
-        }
+        if (chat.id === activeChatId) return { ...chat, messages: [...chat.messages, { role: 'system', content: data.reply }] };
         return chat;
       }));
     } catch (error) {
       setChats(prev => prev.map(chat => {
-        if (chat.id === activeChatId) {
-          return { ...chat, messages: [...chat.messages, { role: 'system', content: 'Connection failed. Please check your network and try again.' }] };
-        }
+        if (chat.id === activeChatId) return { ...chat, messages: [...chat.messages, { role: 'system', content: 'Connection failed. Please check your network and try again.' }] };
         return chat;
       }));
     }
-    
     setIsLoading(false);
   };
+
+  // Sort chats so pinned chats are always at the top
+  const sortedChats = [...chats].sort((a, b) => (a.isPinned === b.isPinned ? 0 : a.isPinned ? -1 : 1));
 
   // --- DYNAMIC THEME CLASSES ---
   const bgMain = isDarkMode ? 'bg-[#05070a]' : 'bg-slate-50';
@@ -115,6 +152,8 @@ export default function MetagentUI() {
   const textMain = isDarkMode ? 'text-slate-200' : 'text-slate-800';
   const borderCol = isDarkMode ? 'border-white/10' : 'border-slate-200';
   const botBubble = isDarkMode ? 'bg-slate-800 text-slate-300 shadow-md' : 'bg-white text-slate-700 shadow-sm border border-slate-100';
+  const dropdownBg = isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-xl';
+  const dropdownItemHover = isDarkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-slate-100 text-slate-700';
 
   return (
     <div className={`flex h-screen overflow-hidden transition-colors duration-300 ${bgMain} ${textMain}`}>
@@ -169,20 +208,70 @@ export default function MetagentUI() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 w-64 space-y-1">
+        <div className="flex-1 overflow-y-auto px-3 w-64 space-y-1 relative pb-4">
           <p className="px-2 text-xs font-semibold text-slate-500 uppercase mt-4 mb-2">Sessions</p>
-          {chats.map(chat => (
-            <button
-              key={chat.id}
-              onClick={() => setActiveChatId(chat.id)}
-              className={`w-full text-left px-3 py-3 rounded-lg text-sm truncate transition-colors ${
-                activeChatId === chat.id 
-                  ? (isDarkMode ? 'bg-slate-800 text-white' : 'bg-white text-black shadow-sm font-medium')
-                  : (isDarkMode ? 'text-slate-400 hover:bg-slate-800/50' : 'text-slate-500 hover:bg-slate-200/50')
-              }`}
-            >
-              Chat: {chat.title}
-            </button>
+          
+          {sortedChats.map(chat => (
+            <div key={chat.id} className="relative group">
+              {editingId === chat.id ? (
+                // RENAME INPUT MODE
+                <div className={`flex items-center px-3 py-2.5 rounded-lg border focus-within:border-purple-500 ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-300'}`}>
+                  <input 
+                    autoFocus
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => saveRename(chat.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveRename(chat.id) }}
+                    className="w-full bg-transparent border-none focus:ring-0 text-sm p-0 text-inherit"
+                  />
+                </div>
+              ) : (
+                // STANDARD CHAT BUTTON MODE
+                <button
+                  onClick={() => setActiveChatId(chat.id)}
+                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm transition-colors pr-8 ${
+                    activeChatId === chat.id 
+                      ? (isDarkMode ? 'bg-slate-800 text-white' : 'bg-white text-black shadow-sm font-medium')
+                      : (isDarkMode ? 'text-slate-400 hover:bg-slate-800/50' : 'text-slate-500 hover:bg-slate-200/50')
+                  }`}
+                >
+                  <span className="truncate flex items-center gap-2">
+                    {chat.isPinned ? (
+                      <svg className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path></svg>
+                    ) : '💬'} 
+                    <span className="truncate">{chat.title}</span>
+                  </span>
+                  
+                  {/* The 3-Dots Menu Trigger */}
+                  <div 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-500/20"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === chat.id ? null : chat.id) }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                  </div>
+                </button>
+              )}
+
+              {/* ACTION MENU DROPDOWN */}
+              {menuOpenId === chat.id && (
+                <>
+                  {/* Invisible Overlay to close menu on outside click */}
+                  <div className="fixed inset-0 z-30" onClick={() => setMenuOpenId(null)}></div>
+                  <div className={`absolute right-2 top-10 z-40 w-36 py-1 rounded-xl border shadow-xl ${dropdownBg}`}>
+                    <button onClick={(e) => startRename(e, chat.id, chat.title)} className={`w-full text-left px-4 py-2 text-sm transition-colors ${dropdownItemHover}`}>
+                      Rename
+                    </button>
+                    <button onClick={(e) => togglePin(e, chat.id)} className={`w-full text-left px-4 py-2 text-sm transition-colors ${dropdownItemHover}`}>
+                      {chat.isPinned ? 'Unpin Chat' : 'Pin Chat'}
+                    </button>
+                    <div className={`my-1 border-t ${borderCol}`}></div>
+                    <button onClick={(e) => deleteChat(e, chat.id)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
+                      Delete Chat
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           ))}
         </div>
 
@@ -218,7 +307,7 @@ export default function MetagentUI() {
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-12 pt-24 pb-8 space-y-6">
           <div className="max-w-3xl mx-auto space-y-6">
-            {activeChat.messages.map((msg, i) => (
+            {activeChat?.messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
                   msg.role === 'user' 
