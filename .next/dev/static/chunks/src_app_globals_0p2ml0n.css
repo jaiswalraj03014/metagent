@@ -317,6 +317,10 @@ img, video {
   margin-bottom: .25rem;
 }
 
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+
 .block {
   display: block;
 }
@@ -421,6 +425,14 @@ img, video {
 
 .resize-none {
   resize: none;
+}
+
+.list-inside {
+  list-style-position: inside;
+}
+
+.list-disc {
+  list-style-type: disc;
 }
 
 .flex-col {
@@ -687,6 +699,11 @@ img, video {
 
 .to-\[\#A44C93\]\/90 {
   --tw-gradient-to: #a44c93e6 var(--tw-gradient-to-position);
+}
+
+.object-contain {
+  -o-object-fit: contain;
+  object-fit: contain;
 }
 
 .p-2 {
