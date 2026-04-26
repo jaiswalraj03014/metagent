@@ -8,6 +8,14 @@ import logo from '../assets/logo.png';
 type Message = { role: string; content: string };
 type ChatSession = { id: string; title: string; messages: Message[]; isPinned?: boolean };
 
+// The tables we KNOW work for the demo
+const DEMO_TABLES = [
+  { fqn: "local_mysql.openmetadata_db.openmetadata_db.user_entity", name: "user_entity (Has PII)" },
+  { fqn: "local_mysql.openmetadata_db.openmetadata_db.ACT_HI_PROCINST", name: "ACT_HI_PROCINST (Missing Docs)" },
+  { fqn: "local_mysql.openmetadata_db.openmetadata_db.audit_log_event", name: "audit_log_event" },
+  { fqn: "local_mysql.openmetadata_db.openmetadata_db.background_jobs", name: "background_jobs" }
+];
+
 export default function MetagentUI() {
   // --- STATE ---
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -17,6 +25,9 @@ export default function MetagentUI() {
   
   const [showWelcome, setShowWelcome] = useState(false);
   
+  // Table Selection State
+  const [selectedTable, setSelectedTable] = useState(DEMO_TABLES[0].fqn);
+
   // Chat Actions State
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -126,7 +137,10 @@ export default function MetagentUI() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
+        body: JSON.stringify({ 
+          message: userMessage,
+          tableFQN: selectedTable // Passing the selected table to the backend
+        })
       });
       const data = await res.json();
       
@@ -273,6 +287,29 @@ export default function MetagentUI() {
               )}
             </div>
           ))}
+        </div>
+
+        {/* --- TABLE SELECTOR IN SIDEBAR --- */}
+        <div className={`p-4 border-t ${borderCol} w-64`}>
+          <p className="text-[10px] font-semibold text-slate-500 uppercase mb-2 tracking-wider">Active Table Context</p>
+          <div className="relative">
+            <select 
+              value={selectedTable}
+              onChange={(e) => setSelectedTable(e.target.value)}
+              className={`w-full appearance-none px-3 py-2.5 rounded-lg text-sm font-medium transition-colors border cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
+                isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              {DEMO_TABLES.map((table) => (
+                <option key={table.fqn} value={table.fqn}>
+                  {table.name}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
         </div>
 
         <div className={`p-4 border-t ${borderCol} w-64`}>
