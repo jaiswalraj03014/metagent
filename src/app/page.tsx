@@ -10,10 +10,16 @@ type ChatSession = { id: string; title: string; messages: Message[]; isPinned?: 
 
 // The tables we KNOW work for the demo
 const DEMO_TABLES = [
-  { fqn: "local_mysql.openmetadata_db.openmetadata_db.user_entity", name: "user_entity (Has PII)" },
-  { fqn: "local_mysql.openmetadata_db.openmetadata_db.ACT_HI_PROCINST", name: "ACT_HI_PROCINST (Missing Docs)" },
-  { fqn: "local_mysql.openmetadata_db.openmetadata_db.audit_log_event", name: "audit_log_event" },
-  { fqn: "local_mysql.openmetadata_db.openmetadata_db.background_jobs", name: "background_jobs" }
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.user_entity", name: "user_entity (PII Demo)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.bot_entity", name: "bot_entity (Security Demo)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.ACT_HI_PROCINST", name: "ACT_HI_PROCINST (Auto-Doc Demo)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.table_entity", name: "table_entity (Core Metadata)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.role_entity", name: "role_entity (Governance)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.team_entity", name: "team_entity (Organization)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.dashboard_entity", name: "dashboard_entity (Analytics)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.pipeline_entity", name: "pipeline_entity (Engineering)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.topic_entity", name: "topic_entity (Streaming)" },
+    { fqn: "local_mysql.openmetadata_db.openmetadata_db.audit_log_event", name: "audit_log_event (Tracking)" }
 ];
 const DEFAULT_TABLE_FQN = DEMO_TABLES[0]!.fqn;
 
