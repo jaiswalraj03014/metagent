@@ -5,6 +5,17 @@ import { getTableContext } from './omClient';
 
 // The PII Guardrail Dictionary
 const SENSITIVE_KEYWORDS = ['email', 'ssn', 'password', 'phone', 'credit', 'card', 'address'];
+const EMPTY_LLM_RESPONSE = "I could not get a usable response from the selected AI provider.";
+
+function getRequiredEnv(name: string) {
+    const value = process.env[name];
+
+    if (!value) {
+        throw new Error(`Missing required environment variable: ${name}`);
+    }
+
+    return value;
+}
 
 export async function askMetagent(userQuestion: string, tableFQN: string) {
     console.log(`\n🔍 Fetching verified context for: ${tableFQN}...`);
@@ -67,7 +78,7 @@ export async function askMetagent(userQuestion: string, tableFQN: string) {
 
     try {
         if (provider === 'openai') {
-            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+            const openai = new OpenAI({ apiKey: getRequiredEnv('OPENAI_API_KEY') });
             const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [
@@ -76,12 +87,12 @@ export async function askMetagent(userQuestion: string, tableFQN: string) {
                 ],
                 temperature: 0.1,
             });
-            return response.choices[0].message.content;
+            return response.choices[0]?.message.content || EMPTY_LLM_RESPONSE;
         } 
         
         if (provider === 'groq') {
             const groq = new OpenAI({ 
-                apiKey: process.env.GROQ_API_KEY,
+                apiKey: getRequiredEnv('GROQ_API_KEY'),
                 baseURL: "https://api.groq.com/openai/v1" 
             });
             const response = await groq.chat.completions.create({
@@ -92,18 +103,18 @@ export async function askMetagent(userQuestion: string, tableFQN: string) {
                 ],
                 temperature: 0.1,
             });
-            return response.choices[0].message.content;
+            return response.choices[0]?.message.content || EMPTY_LLM_RESPONSE;
         }
 
         if (provider === 'gemini') {
-            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+            const ai = new GoogleGenAI({ apiKey: getRequiredEnv('GEMINI_API_KEY') });
             const combinedPrompt = `${systemPrompt}\n\nUser Question: ${userQuestion}`;
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents: combinedPrompt,
                 config: { temperature: 0.1 }
             });
-            return response.text;
+            return response.text || EMPTY_LLM_RESPONSE;
         }
 
         return `Error: Unknown provider "${provider}" set in ACTIVE_LLM.`;

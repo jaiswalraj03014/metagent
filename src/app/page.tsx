@@ -15,6 +15,7 @@ const DEMO_TABLES = [
   { fqn: "local_mysql.openmetadata_db.openmetadata_db.audit_log_event", name: "audit_log_event" },
   { fqn: "local_mysql.openmetadata_db.openmetadata_db.background_jobs", name: "background_jobs" }
 ];
+const DEFAULT_TABLE_FQN = DEMO_TABLES[0]!.fqn;
 
 export default function MetagentUI() {
   // --- STATE ---
@@ -26,7 +27,7 @@ export default function MetagentUI() {
   const [showWelcome, setShowWelcome] = useState(false);
   
   // Table Selection State
-  const [selectedTable, setSelectedTable] = useState(DEMO_TABLES[0].fqn);
+  const [selectedTable, setSelectedTable] = useState(DEFAULT_TABLE_FQN);
 
   // Chat Actions State
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export default function MetagentUI() {
       setActiveChatId(newId);
     } else {
       setChats(remainingChats);
-      if (activeChatId === id) setActiveChatId(remainingChats[0].id);
+      if (activeChatId === id) setActiveChatId(remainingChats[0]!.id);
     }
     setMenuOpenId(null);
   };

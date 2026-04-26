@@ -232,6 +232,14 @@ const SENSITIVE_KEYWORDS = [
     'card',
     'address'
 ];
+const EMPTY_LLM_RESPONSE = "I could not get a usable response from the selected AI provider.";
+function getRequiredEnv(name) {
+    const value = process.env[name];
+    if (!value) {
+        throw new Error(`Missing required environment variable: ${name}`);
+    }
+    return value;
+}
 async function askMetagent(userQuestion, tableFQN) {
     console.log(`\n🔍 Fetching verified context for: ${tableFQN}...`);
     // 1. Get the truth from OpenMetadata
@@ -281,7 +289,7 @@ async function askMetagent(userQuestion, tableFQN) {
     try {
         if (provider === 'openai') {
             const openai = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$openai$2f$client$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__$3c$export__OpenAI__as__default$3e$__["default"]({
-                apiKey: process.env.OPENAI_API_KEY
+                apiKey: getRequiredEnv('OPENAI_API_KEY')
             });
             const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
@@ -297,11 +305,11 @@ async function askMetagent(userQuestion, tableFQN) {
                 ],
                 temperature: 0.1
             });
-            return response.choices[0].message.content;
+            return response.choices[0]?.message.content || EMPTY_LLM_RESPONSE;
         }
         if (provider === 'groq') {
             const groq = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$openai$2f$client$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__$3c$export__OpenAI__as__default$3e$__["default"]({
-                apiKey: process.env.GROQ_API_KEY,
+                apiKey: getRequiredEnv('GROQ_API_KEY'),
                 baseURL: "https://api.groq.com/openai/v1"
             });
             const response = await groq.chat.completions.create({
@@ -318,11 +326,11 @@ async function askMetagent(userQuestion, tableFQN) {
                 ],
                 temperature: 0.1
             });
-            return response.choices[0].message.content;
+            return response.choices[0]?.message.content || EMPTY_LLM_RESPONSE;
         }
         if (provider === 'gemini') {
             const ai = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$google$2f$genai$2f$dist$2f$node$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["GoogleGenAI"]({
-                apiKey: process.env.GEMINI_API_KEY
+                apiKey: getRequiredEnv('GEMINI_API_KEY')
             });
             const combinedPrompt = `${systemPrompt}\n\nUser Question: ${userQuestion}`;
             const response = await ai.models.generateContent({
@@ -332,7 +340,7 @@ async function askMetagent(userQuestion, tableFQN) {
                     temperature: 0.1
                 }
             });
-            return response.text;
+            return response.text || EMPTY_LLM_RESPONSE;
         }
         return `Error: Unknown provider "${provider}" set in ACTIVE_LLM.`;
     } catch (error) {
