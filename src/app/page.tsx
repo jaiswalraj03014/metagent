@@ -362,17 +362,18 @@ export default function MetagentUI() {
                   {msg.role === 'user' ? (
                     msg.content
                   ) : (
-                    <ReactMarkdown 
-                      className="flex flex-col gap-2"
-                      components={{
-                        strong: ({node, ...props}) => <strong className="font-semibold text-purple-400" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 my-2" {...props} />,
-                        li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
-                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
+                    <div className="flex flex-col gap-2">
+                      <ReactMarkdown 
+                        components={{
+                          strong: ({node, ...props}) => <strong className="font-semibold text-purple-400" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 my-2" {...props} />,
+                          li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
+                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
                   )}
                 </div>
               </div>
