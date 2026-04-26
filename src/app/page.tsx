@@ -13,6 +13,9 @@ export default function MetagentUI() {
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState('');
   
+  // The Welcome Modal State
+  const [showWelcome, setShowWelcome] = useState(false);
+  
   // Session-based chats
   const [chats, setChats] = useState<ChatSession[]>([
     { 
@@ -27,18 +30,33 @@ export default function MetagentUI() {
   const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
 
   // --- EFFECTS ---
-  // Auto-scroll to bottom
+  
+  // 1. Check for first-time visitor
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('metagent_welcome_seen');
+    if (!hasSeenWelcome) {
+      setShowWelcome(true);
+    }
+  }, []);
+
+  // 2. Auto-scroll to bottom
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [activeChat.messages]);
 
-  // Apply dark mode to HTML tag for scrollbars
+  // 3. Apply dark mode
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
   // --- ACTIONS ---
+  
+  const closeWelcome = () => {
+    localStorage.setItem('metagent_welcome_seen', 'true');
+    setShowWelcome(false);
+  };
+
   const createNewChat = () => {
     const newId = Date.now().toString();
     setChats(prev => [
@@ -46,7 +64,7 @@ export default function MetagentUI() {
       ...prev
     ]);
     setActiveChatId(newId);
-    if (window.innerWidth < 768) setIsSidebarOpen(false); // Auto-close on mobile
+    if (window.innerWidth < 768) setIsSidebarOpen(false); 
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -57,10 +75,8 @@ export default function MetagentUI() {
     setInput('');
     setIsLoading(true);
 
-    // Update the active chat with the user's message
     setChats(prev => prev.map(chat => {
       if (chat.id === activeChatId) {
-        // Auto-rename the chat based on the first question
         const newTitle = chat.messages.length === 1 ? userMessage.slice(0, 25) + '...' : chat.title;
         return { ...chat, title: newTitle, messages: [...chat.messages, { role: 'user', content: userMessage }] };
       }
@@ -76,7 +92,6 @@ export default function MetagentUI() {
       
       const data = await res.json();
       
-      // Update the active chat with AI response
       setChats(prev => prev.map(chat => {
         if (chat.id === activeChatId) {
           return { ...chat, messages: [...chat.messages, { role: 'system', content: data.reply }] };
@@ -105,6 +120,45 @@ export default function MetagentUI() {
   return (
     <div className={`flex h-screen overflow-hidden transition-colors duration-300 ${bgMain} ${textMain}`}>
       
+      {/* ========================================== */}
+      {/* THE WELCOME MODAL (NOISY GLASS EFFECT)     */}
+      {/* ========================================== */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative max-w-sm w-full rounded-3xl p-8 overflow-hidden shadow-2xl shadow-purple-900/50 border border-white/20">
+            
+            {/* The Gradient Base */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#6F1695]/90 to-[#A44C93]/90 backdrop-blur-xl"></div>
+            
+            {/* The Noise Texture Trick */}
+            <div className="absolute inset-0 opacity-30 mix-blend-overlay" 
+                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}>
+            </div>
+
+            {/* Modal Content */}
+            <div className="relative z-10 text-white space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight mb-1">Welcome to Metagent</h2>
+                <p className="text-xs text-purple-200 uppercase tracking-wider">Enterprise Data AI</p>
+              </div>
+              
+              <div className="space-y-4 text-sm text-purple-50 leading-relaxed font-medium">
+                <p className="flex gap-3"><span className="text-xl">🧠</span> <span><strong>Temporary Memory:</strong> This session is local. If you refresh the page, your chat history instantly clears.</span></p>
+                <p className="flex gap-3"><span className="text-xl">✨</span> <span><strong>No Hallucinations:</strong> Answers are strictly grounded in your live OpenMetadata schemas.</span></p>
+                <p className="flex gap-3"><span className="text-xl">🛡️</span> <span><strong>Secure:</strong> Built-in guardrails automatically block queries for PII and sensitive data.</span></p>
+              </div>
+
+              <button 
+                onClick={closeWelcome} 
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg active:scale-95"
+              >
+                Let's Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR */}
       <aside 
         className={`fixed md:relative z-20 h-full flex flex-col transition-all duration-300 ease-in-out ${bgSidebar} border-r ${borderCol}
@@ -136,7 +190,6 @@ export default function MetagentUI() {
           ))}
         </div>
 
-        {/* SETTINGS (Theme Toggle) */}
         <div className={`p-4 border-t ${borderCol} w-64`}>
           <button 
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -152,7 +205,6 @@ export default function MetagentUI() {
       {/* MAIN CHAT AREA */}
       <main className="flex-1 flex flex-col relative w-full h-full">
         
-        {/* HEADER */}
         <header className={`flex items-center justify-between p-4 border-b ${borderCol} ${isDarkMode ? 'bg-[#05070a]/80' : 'bg-slate-50/80'} backdrop-blur-md absolute top-0 w-full z-10`}>
           <div className="flex items-center gap-3">
             <button 
@@ -165,7 +217,6 @@ export default function MetagentUI() {
           </div>
         </header>
 
-        {/* CHAT MESSAGES */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-12 pt-24 pb-8 space-y-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {activeChat.messages.map((msg, i) => (
@@ -191,7 +242,6 @@ export default function MetagentUI() {
           </div>
         </div>
 
-        {/* INPUT BOX */}
         <div className={`p-4 md:p-6 pb-6 md:pb-8 bg-gradient-to-t ${isDarkMode ? 'from-[#05070a] via-[#05070a]/90' : 'from-slate-50 via-slate-50/90'} to-transparent`}>
           <form 
             onSubmit={sendMessage} 
@@ -214,9 +264,6 @@ export default function MetagentUI() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
             </button>
           </form>
-          <p className={`text-center text-[10px] mt-3 tracking-wide ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-            Metagent can make mistakes. Verify critical database schemas.
-          </p>
         </div>
 
       </main>
